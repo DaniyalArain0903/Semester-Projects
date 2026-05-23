@@ -1,0 +1,110 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# -----------------------------
+# 1. Load Dataset
+# -----------------------------
+data = pd.read_csv("ldr_dataset.csv")
+
+print("First 5 rows:")
+print(data.head())
+
+print("\nColumns:")
+print(data.columns)
+
+# -----------------------------
+# 2. Graph 1: LDR1 vs LDR2
+# -----------------------------
+plt.figure()
+plt.scatter(data['LDR1'], data['LDR2'])
+plt.xlabel("LDR1")
+plt.ylabel("LDR2")
+plt.title("LDR Sensor Relationship")
+plt.show()
+plt.close()
+
+# -----------------------------
+# 3. Encode Labels
+# -----------------------------
+data['Direction_encoded'] = data['Direction'].map({
+    'LEFT': 0,
+    'CENTER': 1,
+    'RIGHT': 2
+})
+
+# -----------------------------
+# 4. Graph 2: LDR1 vs Direction
+# -----------------------------
+plt.figure()
+plt.scatter(data['LDR1'], data['Direction_encoded'])
+plt.xlabel("LDR1")
+plt.ylabel("Direction (Encoded)")
+plt.title("LDR1 vs Direction")
+plt.show()
+plt.close()
+
+# -----------------------------
+# 5. ML Model Training
+# -----------------------------
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+
+X = data[['LDR1', 'LDR2']]
+y = data['Direction_encoded']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+model = DecisionTreeClassifier()
+model.fit(X_train, y_train)
+
+print("\nModel trained successfully!")
+
+# -----------------------------
+# 6. Predictions
+# -----------------------------
+y_pred = model.predict(X_test)
+
+# -----------------------------
+# 7. Accuracy
+# -----------------------------
+from sklearn.metrics import accuracy_score
+
+accuracy = accuracy_score(y_test, y_pred)
+print("\nModel Accuracy:", accuracy)
+
+# -----------------------------
+# 8. Graph 3: Accuracy Plot
+# -----------------------------
+plt.figure()
+plt.bar(["Decision Tree"], [accuracy])
+plt.ylim(0, 1)
+plt.title("Model Accuracy")
+plt.ylabel("Accuracy")
+plt.show()
+plt.close()
+
+# -----------------------------
+# 9. Graph 4: Confusion Matrix
+# -----------------------------
+from sklearn.metrics import confusion_matrix
+
+cm = confusion_matrix(y_test, y_pred)
+
+plt.figure()
+sns.heatmap(cm, annot=True, fmt='d', cmap="Blues")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix")
+plt.show()
+plt.close()
+
+# -----------------------------
+# 10. Test Prediction
+# -----------------------------
+sample = pd.DataFrame([[800, 400]], columns=['LDR1', 'LDR2'])
+prediction = model.predict(sample)
+
+direction_map = {0: "LEFT", 1: "CENTER", 2: "RIGHT"}
+
+print("\nPredicted Direction:", direction_map[prediction[0]])
