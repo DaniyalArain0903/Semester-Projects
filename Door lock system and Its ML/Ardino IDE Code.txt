@@ -1,0 +1,107 @@
+#include <Keypad.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Servo.h>
+
+// LCD setup
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Servo
+Servo doorServo;
+
+// Buzzer
+int buzzerPin = 10;
+
+// Password
+String password = "1234";
+String input = "";
+
+// Keypad setup
+const byte ROWS = 4;
+const byte COLS = 3;
+
+char keys[ROWS][COLS] = {
+  {'1','2','3'},
+  {'4','5','6'},
+  {'7','8','9'},
+  {'*','0','#'}
+};
+
+byte rowPins[ROWS] = {2, 3, 4, 5};
+byte colPins[COLS] = {6, 7, 8};
+
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+// ================= SETUP =================
+void setup() {
+  lcd.init();
+  lcd.backlight();
+
+  doorServo.attach(9);
+  doorServo.write(0); // Locked position
+
+  pinMode(buzzerPin, OUTPUT);
+
+  lcd.setCursor(0,0);
+  lcd.print("Enter Password:");
+}
+
+// ================= LOOP =================
+void loop() {
+  char key = keypad.getKey();
+
+  if (key) {
+
+    // ENTER KEY (#)
+    if (key == '#') {
+      lcd.clear();
+
+      if (input == password) {
+        lcd.print("Access Granted");
+
+        // 🔓 OPEN DOOR
+        doorServo.write(90);
+        delay(2000);   // wait 2 seconds
+
+        // 🔒 CLOSE DOOR
+        doorServo.write(0);
+
+        lcd.clear();
+        lcd.print("Locked");
+        delay(1000);
+      } 
+      else {
+        lcd.print("Wrong Password");
+
+        // 🔔 BUZZER ALERT
+        digitalWrite(buzzerPin, HIGH);
+        delay(2000);
+        digitalWrite(buzzerPin, LOW);
+      }
+
+      input = "";
+      lcd.clear();
+      lcd.print("Enter Password:");
+    }
+
+    // CLEAR (*)
+    else if (key == '*') {
+      input = "";
+      lcd.clear();
+      lcd.print("Cleared");
+      delay(1000);
+      lcd.clear();
+      lcd.print("Enter Password:");
+    }
+
+    // NUMBER INPUT
+    else {
+      input += key;
+
+      lcd.setCursor(0,1);
+      lcd.print("                ");
+      lcd.setCursor(0,1);
+      lcd.print(input);
+    }
+  }
+}
