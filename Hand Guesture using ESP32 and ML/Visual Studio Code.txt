@@ -1,0 +1,59 @@
+import cv2
+import mediapipe as mp
+import serial
+import time
+import math
+
+# CHANGE YOUR COM PORT
+esp = serial.Serial('COM3', 115200)
+time.sleep(2)
+
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands(max_num_hands=1)
+draw = mp.solutions.drawing_utils
+
+cap = cv2.VideoCapture(0)
+
+def distance(x1, y1, x2, y2):
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+while True:
+    success, img = cap.read()
+    img = cv2.flip(img, 1)
+
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    result = hands.process(rgb)
+
+    if result.multi_hand_landmarks:
+        for hand in result.multi_hand_landmarks:
+            draw.draw_landmarks(img, hand)
+
+            h, w, c = img.shape
+
+            # Thumb tip (4) and Index tip (8)
+            x1 = int(hand.landmark[4].x * w)
+            y1 = int(hand.landmark[4].y * h)
+
+            x2 = int(hand.landmark[8].x * w)
+            y2 = int(hand.landmark[8].y * h)
+
+            dist = distance(x1, y1, x2, y2)
+
+            # Convert distance to angle
+            angle = int(dist / 2)
+
+            # limit 0–180
+            if angle < 0:
+                angle = 0
+            if angle > 180:
+                angle = 180
+
+            # send to ESP32
+            esp.write(f"{angle}\n".encode())
+
+            print("Angle:", angle)
+
+    cv2.imshow("Finger Control Servo", img)
+
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
